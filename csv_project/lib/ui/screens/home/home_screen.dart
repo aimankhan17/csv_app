@@ -25,44 +25,61 @@ class _HomePageState extends State<HomePage> {
   List<String> rowDataUnSelected = [];
   List<List<String>> unSelectedData = [];
 
+  ///Function generate CSVs with similar and non similar words
   Future<void> _genCSVs() async {
+    ///Iterate from every row which contains user selected words
     for (int index = 0; index < csvData.length; index++) {
       rowDataSelected = [];
       rowDataUnSelected = [];
-      for (int innerIndex = 0; innerIndex < csvData[index].length; innerIndex++) {
-        ///Make true strings non selectable 
+      for (int innerIndex = 0;
+          innerIndex < csvData[index].length;
+          innerIndex++) {
+        ///Make true strings non selectable
         if (innerIndex == 0) {
           rowDataSelected.add(csvData[index][innerIndex].title);
           rowDataUnSelected.add(csvData[index][innerIndex].title);
         } else {
+          ///Get selected words from user
           if (csvData[index][innerIndex].isSelected) {
-            ///Selected data from user
             rowDataSelected.add(csvData[index][innerIndex].title);
           } else {
-            ///Un-selected data from user
+            ///Get Un-selected words from user
             rowDataUnSelected.add(csvData[index][innerIndex].title);
           }
         }
       }
+
+      ///Store selected words in [selectedData] list
       selectedData.add(rowDataSelected);
+
+      ///Store unselected words in [unSelectedData] list
       unSelectedData.add(rowDataUnSelected);
     }
+
+    ///Store CSV with similar words
     storeCSV(selectedData, "similar_csv.csv");
+
+    ///Store CSV with non similar words
     storeCSV(unSelectedData, "non_similar_csv.csv");
   }
 
   void storeCSV(List<List<String>> list, String fileName) async {
+    ///Check if permission storage permission is granted to store data in a Directory
     if ((await Permission.storage.request().isGranted)) {
+      ///Get a Directory
       final dir =
           await getExternalStorageDirectories(type: StorageDirectory.dcim);
+
+      ///Create a file onn given path
       File file = File(dir![0].path + "/$fileName");
+
+      ///Write data in file and convert it to CSV
+      await file.writeAsString(const ListToCsvConverter().convert(list));
       Fluttertoast.showToast(
           msg: 'CSV files are stored in ${dir[0].path + '/$fileName'}',
           toastLength: Toast.LENGTH_LONG);
-      await file.writeAsString(const ListToCsvConverter().convert(list));
     } else {
-      // Map<Permission, PermissionStatus> statuses =
-       await [
+      Map<Permission, PermissionStatus> statuses = await [
         Permission.storage,
       ].request();
     }
@@ -70,18 +87,28 @@ class _HomePageState extends State<HomePage> {
 
   // This function is triggered when the floating button is pressed
   void _loadCSV() async {
+    ///Load CSV file from asset
     final _rawData = await rootBundle.loadString("assets/inpu_list.csv");
+
+    ///Convert CSV data into list of data by using [CsvToListConverter]
     List<List<dynamic>> _listData =
         const CsvToListConverter().convert(_rawData);
     setState(() {
       _data = _listData;
     });
+
+    ///Get every row from the list. Row contains ; separated words
     for (int index = 0; index < _data.length; index++) {
+      ///Split string based on ; to get each words and put it into data list
       var innerData = _data[index][0].toString().split(';');
       List<DataModel> dataModels = [];
+
+      ///Get every word and put it into a model which handles words selection
       for (String title in innerData) {
         dataModels.add(DataModel(isSelected: false, title: title));
       }
+
+      ///Put words into list of words
       csvData.add(dataModels);
     }
   }
